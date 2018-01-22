@@ -35,8 +35,7 @@ void test_word_converter(int total) {
         trytes_to_chars(&trytes[0], &chars[0], 81);
 
         //display the generated seed
-        printf("-------\n");
-        print(&chars[0]);
+        printf("Seed: %s\n", &chars[0]);
 
         //convert
         specific_243trits_to_49trints(&trits[0], &trints[0]);
@@ -49,6 +48,6 @@ void test_word_converter(int total) {
         print_243trits(&trits2[0]);
 
         //display converted seed
-        print(&chars2[0]);
+        printf("Resulting chars: %s\n", &chars2[0]);
     }
 }
