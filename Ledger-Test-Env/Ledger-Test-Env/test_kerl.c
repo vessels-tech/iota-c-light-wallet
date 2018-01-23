@@ -92,12 +92,12 @@ int trytes_to_chars(const tryte_t trytes_in[], char chars_out[], uint16_t len)
 
 int bytes_to_words(const unsigned char bytes_in[], uint32_t words_out[], uint8_t word_len)
 {
-    for (uint8_t i = 0; i < word_len; i++) {
+    for (int8_t i = word_len - 1; i >= 0; i--) {
         words_out[i] = 0;
-        words_out[i] |= (bytes_in[(word_len-1-i)*4+0] << 24) & 0xFF000000;
-        words_out[i] |= (bytes_in[(word_len-1-i)*4+1] << 16) & 0x00FF0000;
-        words_out[i] |= (bytes_in[(word_len-1-i)*4+2] <<  8) & 0x0000FF00;
-        words_out[i] |= (bytes_in[(word_len-1-i)*4+3] <<  0) & 0x000000FF;
+        words_out[i] |= (bytes_in[(i)*4+3] << 24) & 0xFF000000;
+        words_out[i] |= (bytes_in[(i)*4+2] << 16) & 0x00FF0000;
+        words_out[i] |= (bytes_in[(i)*4+1] <<  8) & 0x0000FF00;
+        words_out[i] |= (bytes_in[(i)*4+0] <<  0) & 0x000000FF;
     }
     return 0;
 }
