@@ -14,15 +14,15 @@ void print(char *chars) {
 
 void test_word_converter(int total) {
     for(int i=0; i < total; i++) {
-        char chars[82] =
-    "WDIAJYSIPQNMMWMICWHAHMUGJTCCOJWHJLKPOULWTG9TZME9ZCVJNJWNTHESACLGXWPSKGYGVKKCXEBIM\0",
+        char chars[] =
+    "WDIAJYSIPQNMMWMICWHAHMUGJTCCOJWHJLKPOULWTG9TZME9ZCVJNJWNTHESACLGXWPSKGYGVKKCXEBIM",
         chars2[82];
         tryte_t trytes[81], trytes2[81];
         trit_t trits[243], trits2[243];
         trint_t trints[49], trints2[49];
         uint32_t words[12];
         memset(words, 0, sizeof(words));
-        chars[81] = '\0';
+        // chars[81] = '\0';
         chars2[81] = '\0';
 
         //generate random trits
@@ -40,7 +40,14 @@ void test_word_converter(int total) {
         //convert
         specific_243trits_to_49trints(&trits[0], &trints[0]);
         trints_to_words_u_mem(&trints[0], &words[0]);
-        print_words(&words[0], 12);
+
+        unsigned char bytes[48];
+        words_to_bytes(words, bytes, 12);
+        printf("words: %u %u %u bytes: %u %u %u %u %u\n", words[0], words[1], words[2], bytes[0], bytes[1], bytes[2], bytes[3], bytes[4]);
+        bytes_to_words(bytes, words, 12);
+        words_to_bytes(words, bytes, 12);
+        printf("[converted back and forth] words: %u %u %u bytes: %u %u %u %u %u\n", words[0], words[1], words[2], bytes[0], bytes[1], bytes[2], bytes[3], bytes[4]);
+
         words_to_trints_u_mem(&words[0], &trints2[0]);
         specific_49trints_to_243trits(&trints2[0], &trits2[0]);
         trits_to_trytes(&trits2[0], &trytes2[0], 243);

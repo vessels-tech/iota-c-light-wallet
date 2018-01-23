@@ -30,8 +30,8 @@ int words_to_trits(const int32_t words_in[], trit_t trits_out[]);
 int trits_to_words_u(const trit_t trits_in[], uint32_t words_out[]);
 int words_to_trits_u(const uint32_t words_in[], trit_t trits_out[]);
 
-int bytes_to_words(const unsigned char bytes_in[], int32_t words_out[], uint8_t word_len);
-int words_to_bytes(const int32_t words_in[], unsigned char bytes_out[], uint8_t word_len);
+int bytes_to_words(const unsigned char bytes_in[], uint32_t words_out[], uint8_t word_len);
+int words_to_bytes(const uint32_t words_in[], unsigned char bytes_out[], uint8_t word_len);
 
 int trints_to_words(trint_t *trints_in, int32_t words_out[]);
 int words_to_trints(const int32_t words_in[], trint_t *trints_out);
@@ -48,4 +48,3 @@ int kerl_squeeze_trints(trint_t *trints_out, uint16_t len);
 void print_words(uint32_t *words, int len);
 
 #endif /* test_kerl_h */
-
