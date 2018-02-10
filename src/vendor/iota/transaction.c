@@ -7,6 +7,11 @@
 void tag_increment(trit_t trits[]);
 void get_bundle_essence_trits(const char address[], uint64_t value, const char tag[], uint64_t timestamp, uint32_t current_index, uint32_t last_index, trit_t bundle_essence_trits[]);
 
+void int32_to_trits(uint64_t a, trit_t *b, int c)
+{
+    return;
+}
+
 void tag_increment(trit_t trits[])
 {
     // Add one

@@ -118,8 +118,9 @@ static void IOTA_main(void) {
                             //private key and bip44path
                             
                             //sizeof = 76 publicKey, 40 privateKey
-                            cx_ecfp_public_key_t publicKey;
-                            cx_ecfp_private_key_t privateKey;
+                            //------ TODO REMOVE -- NOT NEEDED IF ONLY DATA IS USED
+                            //cx_ecfp_public_key_t publicKey;
+                            //cx_ecfp_private_key_t privateKey;
                             
                             if (rx < APDU_HEADER_LENGTH + BIP44_BYTE_LENGTH) {
                                 hashTainted = 1;

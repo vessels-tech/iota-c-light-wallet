@@ -5,20 +5,20 @@
 
 int kerl_initialize(cx_sha3_t *sha3)
 {
-    cx_keccak_init((cx_hash_t *)sha3, 384);
+    cx_keccak_init(sha3, 384);
     return 0;
 }
 
-static void kerl_hash_bytes(const unsigned char *bytes_in, uint16_t in_len,
+static void kerl_hash_bytes(unsigned char *bytes_in, uint16_t in_len,
                             unsigned char *bytes_out)
 {
     cx_sha3_t sha3;
 
-    cx_keccak_init((cx_hash_t *)&sha3, 384);
+    cx_keccak_init(&sha3, 384);
     cx_hash((cx_hash_t *)&sha3, CX_LAST, bytes_in, in_len, bytes_out);
 }
 
-static int kerl_absorb_bytes(cx_sha3_t *sha3, const unsigned char *bytes_in,
+static int kerl_absorb_bytes(cx_sha3_t *sha3, unsigned char *bytes_in,
                               uint16_t len)
 {
     cx_hash((cx_hash_t *)sha3, 0, bytes_in, len, NULL);

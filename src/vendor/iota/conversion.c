@@ -311,7 +311,7 @@ int trints_to_bigint_mem(const trint_t *trints_in, uint32_t *base)
             sz = size;
             uint32_t carry = 0;
 
-            for (int32_t j = 0; j < sz; j++) {
+            for (uint32_t j = 0; j < sz; j++) {
                 uint64_t v = base[j];
                 v = v * 3 + carry;
 
@@ -376,7 +376,7 @@ int trints_to_words_u(const trint_t trints_in[], uint32_t words_out[])
             sz = size;
             uint32_t carry = 0;
 
-            for (int32_t j = 0; j < sz; j++) {
+            for (uint32_t j = 0; j < sz; j++) {
                 uint64_t v = base[j];
                 v = v * 3 + carry;
 
@@ -448,7 +448,7 @@ int trits_to_bigint(const trit_t *trits_in, uint32_t *bigint)
             sz = size;
             uint32_t carry = 0;
 
-            for (int32_t j = 0; j < sz; j++) {
+            for (uint32_t j = 0; j < sz; j++) {
                 uint64_t v = bigint[j];
                 v = v * 3 + carry;
 
