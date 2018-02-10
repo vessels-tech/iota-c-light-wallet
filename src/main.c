@@ -138,18 +138,16 @@ static void IOTA_main(void) {
                             
                             os_perso_derive_node_bip32(CX_CURVE_256K1, bip44_path, BIP44_PATH_LEN, privateKeyData, NULL);
                             
-                            //ignore below here ----- only using privateKeyData for seed
-                            // TODO --- REMOVE THIS
-                            //      cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
+                            /* REMOVE THIS PORTION
+                            cx_ecdsa_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
                             
                             // generate the public key. (stored in publicKey.W)
-                            //      cx_ecdsa_init_public_key(CX_CURVE_256K1, NULL, 0, &publicKey);
-                            //      cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
-                            //ignore above here -----------------
-                        }
+                            cx_ecdsa_init_public_key(CX_CURVE_256K1, NULL, 0, &publicKey);
+                            cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
+                        */}
                         // the seed in 48 bytes bigint representation
                         uint32_t seed_bigint[12];
-                        get_seed2(privateKeyData, sizeof(privateKeyData), seed_bigint);
+                        get_seed(privateKeyData, sizeof(privateKeyData), seed_bigint);
                         
                         uint32_t address[12] = {0};
                         {
@@ -161,12 +159,10 @@ static void IOTA_main(void) {
                             generate_public_address(private_key, security, address);
                         }
                         
-                        // why is this called seed?
-                        char seed[82];
-                        bigints_to_chars(address, seed, 12);
+                        char key[82];
+                        bigints_to_chars(address, key, 12);
                         
                         // push the response onto the response buffer.
-                        
                         os_memmove(G_io_apdu_buffer, key, 82);
                         
                         tx = 82;
@@ -185,7 +181,6 @@ static void IOTA_main(void) {
                         memcpy(&key_abbrv[0], &key[0], 4); // first 4 chars of seed
                         memcpy(&key_abbrv[4], "...", 3); // copy ...
                         memcpy(&key_abbrv[7], &key[77], 5); //copy last 4 chars + null
-                        
                         
                         ui_display_debug(&key_abbrv[0], 12, TYPE_STR, NULL, 0, 0);
                     } break;
