@@ -153,14 +153,15 @@ static void IOTA_main(void) {
                         uint32_t address[12] = {0};
                         {
                             // security level 1 for now, to save memory and runtime
-                            const uint8_t security = 1;
-                            uint32_t private_key[12 * 27 * security];
+                            const uint8_t security = 3;
+                            //uint32_t private_key[12 * 27 * security];
                             
-                            generate_private_key(seed_bigint, 0, security, private_key);
-                            generate_public_address(private_key, security, address);
+                            //generate_private_key(seed_bigint, 24981, security, private_key);
+                            get_public_addr(seed_bigint, 117832, security, address);
+                            //generate_public_address(private_key, security, address);
                         }
-                        
                         char key[82];
+                        //change privatekey with seed_bigint
                         bigints_to_chars(address, key, 12);
                         
                         // push the response onto the response buffer.
@@ -183,7 +184,11 @@ static void IOTA_main(void) {
                         memcpy(&key_abbrv[4], "...", 3); // copy ...
                         memcpy(&key_abbrv[7], &key[77], 5); //copy last 4 chars + null
                         
-                        ui_display_debug(&key_abbrv[0], 12, TYPE_STR, NULL, 0, 0);
+                        cx_sha3_t sha3;
+                        
+                        unsigned int jj = sizeof(sha3);
+                        
+                        ui_display_debug(&key_abbrv[0], 12, TYPE_STR, &jj, 6, TYPE_UINT);
                     } break;
                         
                         

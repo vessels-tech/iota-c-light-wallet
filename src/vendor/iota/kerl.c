@@ -25,7 +25,7 @@ static int kerl_absorb_bytes(cx_sha3_t *sha3, unsigned char *bytes_in,
     return 0;
 }
 
-static void filp_hash_bytes(unsigned char *bytes)
+static void flip_hash_bytes(unsigned char *bytes)
 {
     for (uint8_t i = 0; i < 48; i++) {
         bytes[i] = ~bytes[i];
@@ -41,7 +41,7 @@ int kerl_squeeze_bytes(cx_sha3_t *sha3, unsigned char *bytes_out)
     os_memcpy(bytes_out, md_value, 48);
 
     // flip bytes for multiple squeeze
-    filp_hash_bytes(md_value);
+    flip_hash_bytes(md_value);
 
     kerl_initialize(sha3);
     kerl_absorb_bytes(sha3, md_value, 48);

@@ -29,7 +29,6 @@ void get_seed(unsigned char *privateKey, uint8_t sz, uint32_t *seed_bigint);
 void get_private_key(trit_t *seed_trits, uint32_t idx, char* msg);
 
 void test_kerl(char *msg);
-void get_seed2(unsigned char *privateKey, uint8_t sz, uint32_t *seed_bigint);
 
 #endif // AUX_H
 
