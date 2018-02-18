@@ -32,9 +32,8 @@ unsigned char hashTainted;     // notification to restart the hash
 //use internalStorage_t to temp hold the storage
 typedef struct internalStorage_t {
     uint8_t initialized;
-    char pub_addr[81];
+    uint8_t fidoTransport;
     uint32_t seed_key;
-
 } internalStorage_t;
 
 uint32_t global_seed_key;
@@ -45,9 +44,6 @@ WIDE internalStorage_t N_storage_real;
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 ux_state_t ux;
-
-
-
 
 static void IOTA_main(void) {
     volatile unsigned int rx = 0;
@@ -127,15 +123,15 @@ static void IOTA_main(void) {
                             }
 
                             os_perso_derive_node_bip32(CX_CURVE_256K1, bip44_path, BIP44_PATH_LEN, privateKeyData, NULL);
-                            
+
                         }
-                        
+
                         // the seed in 48 bytes bigint representation
                         uint32_t seed_bigint[12];
                         get_seed(privateKeyData, sizeof(privateKeyData), seed_bigint);
 
                         uint32_t addr_bigint[12] = {0};
-                        
+
                         {
                             //set the security of our seed
                             const uint8_t security = 2;
@@ -455,6 +451,11 @@ __attribute__((section(".boot"))) int main(void) {
                 internalStorage_t storage;
                 storage.initialized = 0x01;
                 storage.seed_key = 0;
+                #ifdef HAVE_U2F
+                // TEMPORARY hardcode fidoTransport
+                // TODO: remove when we have native wallets (and let the user turn browser mode on or off)
+                storage.fidoTransport = 0x01;
+                #endif // HAVE_U2F
 
                 nvm_write(&N_storage, (void *)&storage,
                           sizeof(internalStorage_t));
