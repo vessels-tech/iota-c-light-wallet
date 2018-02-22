@@ -31,6 +31,10 @@ void ui_display_debug(void *o, uint8_t sz, uint8_t t,
                       void *o2, uint8_t sz2, uint8_t t2,
                       void *o3, uint8_t sz3, uint8_t t3);
 
+//ui_display_debug(top, szof(top), TYPE_TOP,
+//                  mid, szof(mid), TYPE_MID,
+//                  bot, szof(bot) TYPE_BOT);
+
 #endif // UI_H
 
 

@@ -30,6 +30,21 @@ void tag_increment(trit_t trits[])
     }
 }
 
+
+
+void myBundle(const char address[], int64_t val, const char tag[], uint64_t timestamp,
+              uint32_t cur_idx, uint32_t last_idx, uint32_t bundle_trits[])
+{
+    //Address
+    uint32_t addr_bigint[12] = {0};
+    
+    chars_to_bigints(address, addr_bigint, 81);
+}
+
+
+
+
+
 void get_bundle_essence_trits(const char address[], uint64_t value, const char tag[], uint64_t timestamp, uint32_t current_index, uint32_t last_index, trit_t bundle_essence_trits[])
 {
     // Set all to zero
