@@ -56,8 +56,8 @@ static void IOTA_main(void) {
 
     //initialize the UI
     initUImsg();
-    
-    
+
+
     unsigned int tx_mask = 0;
     char addr_abbrv[12];
     uint32_t idx = 0;
@@ -107,57 +107,58 @@ static void IOTA_main(void) {
                     case INS_GET_MULTI_SEND: {
                         uint8_t len = G_io_apdu_buffer[APDU_BODY_LENGTH_OFFSET];
                         unsigned char *in = G_io_apdu_buffer + APDU_HEADER_LENGTH;
-                        
+
                         tx_mask = tx_mask | G_io_apdu_buffer[APDU_TX_TYPE];
-                        
+
                         if(G_io_apdu_buffer[APDU_TX_TYPE] == TX_ADDR) {
                             if(len == 81) {
                                 // - Convert into abbreviated seeed (first 4 and last 4 characters)
                                 memcpy(&addr_abbrv[0], in, 4); // first 4 chars of seed
                                 memcpy(&addr_abbrv[4], "...", 3); // copy ...
                                 memcpy(&addr_abbrv[7], in+len-4, 4); //copy last 4 chars + null
-                                
+
                                 addr_abbrv[11] = '\0';
                             }
                             //we weren't given outgoing address, we were given input idx
                             else {
                                 idx = str_to_int(in, len);
                                 // the seed in 48 bytes bigint representation
-                                uint32_t seed_bigint[12];
+                                uint32_t seed_bigint[12] = {0};
                                 get_seed(NULL, 0, seed_bigint);
-                                
+
                                 uint32_t addr_bigint[12] = {0};
-                                
+
                                 {
                                     //set the security of our seed
                                     const uint8_t security = 1;
                                     get_public_addr(seed_bigint, idx, security, addr_bigint);
                                 }
-                                
+
                                 char address[82];
                                 bigints_to_chars(addr_bigint, address, 12);
-                                
+
                                 // - Convert into abbreviated seeed (first 4 and last 4 characters)
                                 memcpy(&addr_abbrv[0], &address[0], 4); // first 4 chars of seed
                                 memcpy(&addr_abbrv[4], "...", 3); // copy ...
-                                memcpy(&addr_abbrv[7], &address[77], 5); //copy last 4 chars + null
+                                memcpy(&addr_abbrv[7], &address[81-4], 4); //copy last 4 chars + null
+                                addr_abbrv[11] = '\0';
                             }
                         }
-                        
-                        
+
+
                         // push the response onto the response buffer.
                         os_memmove(G_io_apdu_buffer, addr_abbrv, 12);
-                        
+
                         tx = 12;
                         //Manually send back success 0x9000 at end
                         G_io_apdu_buffer[tx++] = 0x90;
                         G_io_apdu_buffer[tx++] = 0x00;
-                        
+
                         //send back response
                         io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-                        
+
                         flags |= IO_ASYNCH_REPLY;
-                        
+
                         ui_display_debug(addr_abbrv, 12, TYPE_STR,
                                          NULL, 0, 0,
                                          &tx_mask, 10, TYPE_UINT);
@@ -190,15 +191,15 @@ static void IOTA_main(void) {
                             }
 
                             os_perso_derive_node_bip32(CX_CURVE_256K1, bip44_path, BIP44_PATH_LEN, privateKeyData, NULL);
-                            
+
                         }
-                        
+
                         // the seed in 48 bytes bigint representation
                         uint32_t seed_bigint[12];
                         get_seed(privateKeyData, sizeof(privateKeyData), seed_bigint);
 
                         uint32_t addr_bigint[12] = {0};
-                        
+
                         {
                             //set the security of our seed
                             const uint8_t security = 2;
@@ -206,22 +207,22 @@ static void IOTA_main(void) {
 
                             get_public_addr(seed_bigint, idx, security, addr_bigint);
                         }
-                        
+
                         char address[82];
                         address[81] = '\0';
-                        
+
                         //convert the bigint address into character address
                         {
                             char bundle_hash[] = "CQYUHGQAILW9ODCXLKRHBIEODRBPTBUKSZZ99O9EGTIKITJCGTNVKPQQ9LWKLROYWTKGDLUZSXFUKSLQZ";
-                        
+
                             tryte_t trytes[81], trytes2[81];
                             chars_to_trytes(bundle_hash, trytes, 81);
-                            
+
                             normalize_hash(trytes, trytes2);
-                            
+
                             trytes_to_chars(trytes2, address, 81);
                         }
-                            
+
                         //char address[82];
                         //bigints_to_chars(addr_bigint, address, 12);
 

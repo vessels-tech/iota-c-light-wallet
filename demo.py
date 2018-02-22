@@ -53,26 +53,26 @@ publicKey = dongle.exchange(bytes("8020000110".decode('hex') +
     "8971"));
 
 print str(publicKey);
-#value
-time.sleep(1);
-publicKey = dongle.exchange(bytes("80200002FF".decode('hex') + "VALUE"));
-print str(publicKey);
-#tag
-time.sleep(1);
-publicKey = dongle.exchange(bytes("80200004FF".decode('hex') + "TAG"));
-print str(publicKey);
-#time
-time.sleep(1);
-publicKey = dongle.exchange(bytes("80200008FF".decode('hex') + "TIME"));
-print str(publicKey);
-#cur
-time.sleep(1);
-publicKey = dongle.exchange(bytes("80200010FF".decode('hex') + "CUR"));
-print str(publicKey);
-#last
-time.sleep(1);
-publicKey = dongle.exchange(bytes("80200120FF".decode('hex') + "LAST"));
-print str(publicKey);
+# #value
+# time.sleep(1);
+# publicKey = dongle.exchange(bytes("80200002FF".decode('hex') + "VALUE"));
+# print str(publicKey);
+# #tag
+# time.sleep(1);
+# publicKey = dongle.exchange(bytes("80200004FF".decode('hex') + "TAG"));
+# print str(publicKey);
+# #time
+# time.sleep(1);
+# publicKey = dongle.exchange(bytes("80200008FF".decode('hex') + "TIME"));
+# print str(publicKey);
+# #cur
+# time.sleep(1);
+# publicKey = dongle.exchange(bytes("80200010FF".decode('hex') + "CUR"));
+# print str(publicKey);
+# #last
+# time.sleep(1);
+# publicKey = dongle.exchange(bytes("80200120FF".decode('hex') + "LAST"));
+# print str(publicKey);
 
 
 elapsed_time = time.time() - start_time
