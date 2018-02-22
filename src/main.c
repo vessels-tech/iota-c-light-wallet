@@ -143,9 +143,24 @@ static void IOTA_main(void) {
 
                             get_public_addr(seed_bigint, idx, security, addr_bigint);
                         }
-                        //convert the bigint address into character address
+                        
                         char address[82];
-                        bigints_to_chars(addr_bigint, address, 12);
+                        address[81] = '\0';
+                        
+                        //convert the bigint address into character address
+                        {
+                            char bundle_hash[] = "CQYUHGQAILW9ODCXLKRHBIEODRBPTBUKSZZ99O9EGTIKITJCGTNVKPQQ9LWKLROYWTKGDLUZSXFUKSLQZ";
+                        
+                            tryte_t trytes[81], trytes2[81];
+                            chars_to_trytes(bundle_hash, trytes, 81);
+                            
+                            normalize_hash(trytes, trytes2);
+                            
+                            trytes_to_chars(trytes2, address, 81);
+                        }
+                            
+                        //char address[82];
+                        //bigints_to_chars(addr_bigint, address, 12);
 
                         // push the response onto the response buffer.
                         os_memmove(G_io_apdu_buffer, address, 82);

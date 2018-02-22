@@ -69,7 +69,7 @@ void get_seed(unsigned char *privateKey, uint8_t sz, uint32_t *seed_bigint) {
     //   // localize bytes_in variable to discard it when we are done
     //   unsigned char bytes_in[48];
     //
-    //   // kerl requires 424 bytes
+    //   // kerl size is 424 bytes
     //   kerl_initialize();
     //
     //   // copy our private key into bytes_in
