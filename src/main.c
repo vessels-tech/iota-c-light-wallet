@@ -45,6 +45,27 @@ WIDE internalStorage_t N_storage_real;
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 ux_state_t ux;
 
+#ifdef HAVE_U2F
+#include "u2f_service.h"
+#include "u2f_transport.h"
+
+volatile u2f_service_t u2fService;
+volatile unsigned char u2fMessageBuffer[U2F_MAX_MESSAGE_SIZE];
+
+extern void USB_power_U2F(unsigned char enabled, unsigned char fido);
+extern bool fidoActivated;
+
+void u2f_proxy_response(u2f_service_t *service, unsigned int tx) {
+    os_memset(service->messageBuffer, 0, 5);
+    os_memmove(service->messageBuffer + 5, G_io_apdu_buffer, tx);
+    service->messageBuffer[tx + 5] = 0x90;
+    service->messageBuffer[tx + 6] = 0x00;
+    u2f_send_fragmented_response(service, U2F_CMD_MSG, service->messageBuffer,
+                                 tx + 7, true);
+}
+
+#endif // HAVE_U2F
+
 static void IOTA_main(void) {
     volatile unsigned int rx = 0;
     volatile unsigned int tx = 0;
@@ -151,7 +172,17 @@ static void IOTA_main(void) {
                         G_io_apdu_buffer[tx++] = 0x90;
                         G_io_apdu_buffer[tx++] = 0x00;
 
+#ifdef HAVE_U2F
+                        if (fidoActivated) {
+                          u2f_proxy_response((u2f_service_t *)&u2fService, tx);
+                        } else {
+                          // Send back the response, do not restart the event loop
+                          io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+                        }
+#else  // HAVE_U2F
+                        // Send back the response, do not restart the event loop
                         io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+#endif // HAVE_U2F
 
                         flags |= IO_ASYNCH_REPLY;
 
@@ -472,8 +503,18 @@ __attribute__((section(".boot"))) int main(void) {
             }
 #endif
 
-            USB_power(0);
-            USB_power(1);
+            USB_power_U2F(0, 0);
+#ifdef HAVE_U2F
+            os_memset((unsigned char *)&u2fService, 0, sizeof(u2fService));
+            u2fService.inputBuffer = G_io_apdu_buffer;
+            u2fService.outputBuffer = G_io_apdu_buffer;
+            u2fService.messageBuffer = (uint8_t *)u2fMessageBuffer;
+            u2fService.messageBufferSize = U2F_MAX_MESSAGE_SIZE;
+            u2f_initialize_service((u2f_service_t *)&u2fService);
+            USB_power_U2F(1, N_storage.fidoTransport);
+#else  // HAVE_U2F
+            USB_power_U2F(1, 0);
+#endif // HAVE_U2F
 
             ui_idle();
 
