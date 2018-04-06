@@ -46,9 +46,48 @@ static inline void cx_hash(SHA3_CTX* hash, int mode, const unsigned char *in,
 }
 
 /* ----------------------------------------------------------------------- */
+/* -                      DEFINES AND MACROS                             - */
+/* ----------------------------------------------------------------------- */
+
+void throw_exception(const char *expression, const char *file, int line);
+
+#define THROW(x) throw_exception(#x, __FILE__, __LINE__)
+
+#define UNUSED(x) (void)(x)
+
+#define MIN(a,b) \
+        ({ __typeof__ (a)_a = (a); \
+           __typeof__ (b)_b = (b); \
+           _a < _b ? _a : _b; })
+#define MAX(a,b) \
+        ({ __typeof__ (a)_a = (a); \
+           __typeof__ (b)_b = (b); \
+           _a > _b ? _a : _b; })
+
+
+/* ----------------------------------------------------------------------- */
 /* -                            COMMON                                   - */
 /* ----------------------------------------------------------------------- */
 
+#define DEBUG_SEED "PETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERR"
+
 #define CX_KECCAK384_SIZE 48
 
+#define CEILING(x,y) (((x) + (y) - 1) / (y))
+
+#define ASSIGN(dest, src)                                                      \
+        ({                                                                     \
+                typeof(src)_x = (src);                                         \
+                typeof(dest)_y = _x;                                           \
+                (_x == _y && ((_x < 1) == (_y < 1)) ? (void)((dest) = _y),     \
+                 1 : 0);                                                       \
+        })
+
+#define IN_RANGE(x, min, max)                                                  \
+        ({                                                                     \
+                typeof(x)_x = (x);                                             \
+                (_x >= (min) && _x <= (max));                                  \
+        })
+
 #endif // COMMON_H
+
