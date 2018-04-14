@@ -33,11 +33,10 @@ typedef struct TX_OBJECT {
 } TX_OBJECT;
 
 static const TX_OBJECT DEFAULT_TX = {
-    {0},       ZERO_HASH, 0,        ZERO_TAG, 0, 0, 0,       ZERO_HASH,
-    ZERO_HASH, ZERO_HASH, ZERO_TAG, 0,        0, 0, ZERO_TAG};
+        {0}, ZERO_HASH, 0, ZERO_TAG, 0, 0, 0, ZERO_HASH,
+        ZERO_HASH, ZERO_HASH, ZERO_TAG, 0, 0, 0, ZERO_TAG};
 
-static char *int64_to_chars(int64_t value, char *chars, unsigned int num_trytes)
-{
+static char *int64_to_chars(int64_t value, char *chars, unsigned int num_trytes) {
     trit_t trits[num_trytes * 3];
     int64_to_trits(value, trits, num_trytes * 3);
     trits_to_chars(trits, chars, num_trytes * 3);
@@ -46,23 +45,20 @@ static char *int64_to_chars(int64_t value, char *chars, unsigned int num_trytes)
 }
 
 static void get_address(const unsigned char *seed_bytes, uint32_t idx,
-                        unsigned int security, char *address)
-{
+                        unsigned int security, char *address) {
     unsigned char bytes[48];
     get_public_addr(seed_bytes, idx, security, bytes);
     bytes_to_chars(bytes, address, 48);
 }
 
-static char *char_copy(char *destination, const char *source, unsigned int len)
-{
+static char *char_copy(char *destination, const char *source, unsigned int len) {
     assert(strnlen(source, len) == len);
     memcpy(destination, source, len);
 
     return destination + len;
 }
 
-static void get_transaction_chars(const TX_OBJECT tx, char *transaction_chars)
-{
+static void get_transaction_chars(const TX_OBJECT tx, char *transaction_chars) {
     // just to make sure
     memset(transaction_chars, '\0', 2673);
 
@@ -85,8 +81,7 @@ static void get_transaction_chars(const TX_OBJECT tx, char *transaction_chars)
     char_copy(c, tx.nonce, 27);
 }
 
-static void increment_obsolete_tag(unsigned int tag_increment, TX_OBJECT *tx)
-{
+static void increment_obsolete_tag(unsigned int tag_increment, TX_OBJECT *tx) {
     char extended_tag[81];
     unsigned char tag_bytes[48];
     rpad_chars(extended_tag, tx->obsoleteTag, NUM_HASH_TRYTES);
@@ -101,8 +96,7 @@ static void increment_obsolete_tag(unsigned int tag_increment, TX_OBJECT *tx)
 }
 
 static void set_bundle_hash(const BUNDLE_CTX *bundle_ctx, TX_OBJECT *txs,
-                            unsigned int num_txs)
-{
+                            unsigned int num_txs) {
     char bundle[81];
     bytes_to_chars(bundle_get_hash(bundle_ctx), bundle, 48);
 
@@ -111,21 +105,12 @@ static void set_bundle_hash(const BUNDLE_CTX *bundle_ctx, TX_OBJECT *txs,
     }
 }
 
-void prepare_transfers(char *seed, uint8_t security, TX_OUTPUT *outputs,
-                       int num_outputs, TX_INPUT *inputs, int num_inputs,
-                       char transaction_chars[][2673])
-{
-    // TODO use a proper timestamp
-    const uint32_t timestamp = 0;
-    const unsigned int num_txs = num_outputs + num_inputs * security;
-    const unsigned int last_tx_index = num_txs - 1;
 
-    unsigned char seed_bytes[48];
-    chars_to_bytes(seed, seed_bytes, 81);
-
-    // first create the transaction objects
-    TX_OBJECT txs[num_txs];
-
+// return last tx index
+int generate_output_objs(
+        TX_OUTPUT *outputs, int num_outputs, TX_OBJECT *txs,
+        uint32_t timestamp, const unsigned int last_tx_index
+) {
     int idx = 0;
     for (unsigned int i = 0; i < num_outputs; i++) {
 
@@ -137,12 +122,20 @@ void prepare_transfers(char *seed, uint8_t security, TX_OUTPUT *outputs,
         txs[idx].value = outputs[i].value;
         rpad_chars(txs[idx].obsoleteTag, outputs[i].tag, 27);
         txs[idx].timestamp = timestamp;
-        txs[idx].currentIndex = idx;
+        txs[idx].currentIndex = (uint32_t) idx;
         txs[idx].lastIndex = last_tx_index;
         rpad_chars(txs[idx].tag, outputs[i].tag, 27);
         idx++;
     }
 
+    return idx;
+}
+
+void generate_input_objs(
+        TX_INPUT *inputs, int num_inputs, TX_OBJECT *txs, uint32_t timestamp,
+        const unsigned int last_tx_index, uint8_t security,
+        unsigned char *seed_bytes, int idx
+) {
     for (unsigned int i = 0; i < num_inputs; i++) {
 
         // initialize with defaults
@@ -152,7 +145,7 @@ void prepare_transfers(char *seed, uint8_t security, TX_OUTPUT *outputs,
         get_address(seed_bytes, inputs[i].key_index, security, address);
         txs[idx].value = -inputs[i].balance;
         txs[idx].timestamp = timestamp;
-        txs[idx].currentIndex = idx;
+        txs[idx].currentIndex = (uint32_t) idx;
         txs[idx].lastIndex = last_tx_index;
         idx++;
 
@@ -165,32 +158,29 @@ void prepare_transfers(char *seed, uint8_t security, TX_OUTPUT *outputs,
             memcpy(txs[idx].address, address, 81);
             txs[idx].value = 0;
             txs[idx].timestamp = timestamp;
-            txs[idx].currentIndex = idx;
+            txs[idx].currentIndex = (uint32_t) idx;
             txs[idx].lastIndex = last_tx_index;
             idx++;
         }
     }
+}
 
-    // create a secure bundle
-    BUNDLE_CTX bundle_ctx;
-    bundle_initialize(&bundle_ctx, last_tx_index);
+uint32_t create_bundle(BUNDLE_CTX *bundle_ctx, TX_OBJECT *txs, uint32_t num_txs) {
+
+    bundle_initialize(bundle_ctx, num_txs - 1);
 
     for (unsigned int i = 0; i < num_txs; i++) {
-        bundle_set_external_address(&bundle_ctx, txs[i].address);
-        bundle_add_tx(&bundle_ctx, txs[i].value, txs[i].tag, txs[i].timestamp);
+        bundle_set_external_address(bundle_ctx, txs[i].address);
+        bundle_add_tx(bundle_ctx, txs[i].value, txs[i].tag, txs[i].timestamp);
     }
 
-    uint32_t tag_increment = bundle_finalize(&bundle_ctx);
+    return bundle_finalize(bundle_ctx);
+}
 
-    // increment the tag in the first transaction object
-    increment_obsolete_tag(tag_increment, &txs[0]);
-
-    // set the bundle hash in all transaction objects
-    set_bundle_hash(&bundle_ctx, txs, num_txs);
-
-    // sign the inputs
-    tryte_t normalized_bundle_hash[81];
-    bundle_get_normalized_hash(&bundle_ctx, normalized_bundle_hash);
+void sign_inputs(
+        unsigned char seed_bytes[48], uint8_t security, TX_OBJECT *txs, TX_INPUT *inputs,
+        tryte_t normalized_bundle_hash[81], int num_inputs, int num_outputs
+) {
 
     for (unsigned int i = 0; i < num_inputs; i++) {
         SIGNING_CTX signing_ctx;
@@ -207,9 +197,66 @@ void prepare_transfers(char *seed, uint8_t security, TX_OUTPUT *outputs,
                            27 * 48);
         }
     }
+}
+
+
+void create_transfer_bytes(
+        char *seed, uint8_t security, TX_OUTPUT *outputs,
+        int num_outputs, TX_INPUT *inputs, int num_inputs,
+        char transaction_bytes[][1584]
+) {
+    const unsigned int num_txs = (unsigned int) (num_outputs + num_inputs * security);
+    char transaction_chars[num_txs][2673];
+
+    create_transfer_chars(seed, security, outputs, num_outputs, inputs, num_inputs, transaction_chars);
+
+    for (int i = 0; i < num_txs; i++) {
+        chars_to_bytes(transaction_chars[i], (unsigned char *) transaction_bytes[i], 2673);
+    }
+}
+
+
+void create_transfer_chars(
+        char *seed, uint8_t security, TX_OUTPUT *outputs,
+        int num_outputs, TX_INPUT *inputs, int num_inputs,
+        char transaction_chars[][2673]
+) {
+    // TODO use a proper timestamp
+    const uint32_t timestamp = 0;
+    const unsigned int num_txs = (unsigned int) (num_outputs + num_inputs * security);
+    const unsigned int last_tx_index = num_txs - 1;
+
+    unsigned char seed_bytes[48];
+    chars_to_bytes(seed, seed_bytes, 81);
+
+    // first create the transaction objects
+    TX_OBJECT txs[num_txs];
+
+    int idx = generate_output_objs(outputs, num_outputs, txs, timestamp, last_tx_index);
+    generate_input_objs(inputs, num_inputs, txs, timestamp, last_tx_index, security, seed_bytes, idx);
+
+    // create a secure bundle
+    BUNDLE_CTX bundle_ctx;
+
+    uint32_t tag_increment = create_bundle(&bundle_ctx, txs, num_txs);
+
+    // increment the tag in the first transaction object
+    increment_obsolete_tag(tag_increment, &txs[0]);
+
+    // set the bundle hash in all transaction objects
+    set_bundle_hash(&bundle_ctx, txs, num_txs);
+
+    // sign the inputs
+    tryte_t normalized_bundle_hash[81];
+    bundle_get_normalized_hash(&bundle_ctx, normalized_bundle_hash);
+
+    sign_inputs(seed_bytes, security, txs, inputs, normalized_bundle_hash, num_inputs, num_outputs);
 
     // convert everything into trytes
     for (unsigned int i = 0; i < num_txs; i++) {
         get_transaction_chars(txs[i], transaction_chars[last_tx_index - i]);
     }
 }
+
+
+
