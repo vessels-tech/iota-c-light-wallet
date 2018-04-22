@@ -8,6 +8,9 @@
 #include "bundle.h"
 #include "signing.h"
 #include "../aux.h"
+#include <math.h>
+#include <stdio.h>
+#include <malloc.h>
 
 #define ZERO_HASH                                                              \
     "999999999999999999999999999999999999999999999999999999999999999999999999" \
@@ -56,6 +59,184 @@ static char *char_copy(char *destination, const char *source, unsigned int len) 
     memcpy(destination, source, len);
 
     return destination + len;
+}
+
+static char *int8_copy(char *destination, const uint8_t source) {
+    memcpy(destination, &source, sizeof(uint8_t));
+
+    return destination + sizeof(uint8_t);
+}
+
+static char * int16_copy(char *destination, const uint16_t source) {
+    memcpy(destination, &source, sizeof(uint16_t));
+
+    return destination + sizeof(uint16_t);
+}
+
+static char * int32_copy(char *destination, const uint32_t source) {
+    memcpy(destination, &source, sizeof(uint32_t));
+
+    return destination + sizeof(uint32_t);
+}
+
+uint16_t get_non_nine_len(char *signatureMessageFragment, uint16_t len) {
+    uint16_t last_index = (uint16_t) (len - 1);
+    if (
+            signatureMessageFragment[last_index - 1] == '9' &&
+            signatureMessageFragment[last_index] == '9'
+            ) {
+        return get_non_nine_len(signatureMessageFragment, (uint16_t) (len - 1));
+    } else {
+        return len;
+    }
+}
+
+uint8_t is_zero(char *content, uint16_t len) {
+    if (
+            content[0] == '9' &&
+            content[1] == '9' &&
+            content[2] == '9' &&
+            content[len - 1] == '9'
+            ) {
+        return 1;
+    }else{
+        return 0;
+    }
+}
+
+char * get_compress_header_bytes(TX_OBJECT *txs, char *header_bytes, uint32_t num_txs){
+
+    header_bytes = int32_copy(header_bytes, num_txs);
+
+    uint8_t has_transaction_message[num_txs];
+
+    int i = 0;
+    for (int index = num_txs; index > 0; index--) {
+        if(is_zero(txs[index - 1].signatureMessageFragment, 2187)){
+            int8_copy(&has_transaction_message[i], 0);
+        }else{
+            int8_copy(&has_transaction_message[i], 1);
+        }
+        header_bytes = int8_copy(header_bytes, has_transaction_message[i]);
+
+        i++;
+    }
+
+    uint8_t has_tag[num_txs];
+    i = 0;
+    for (int index = num_txs; index > 0; index--) {
+        if(is_zero(txs[index - 1].obsoleteTag, 27)){
+            int8_copy(&has_tag[i], 0);
+        }else{
+            int8_copy(&has_tag[i], 1);
+        }
+        header_bytes = int8_copy(header_bytes, has_tag[i]);
+
+        i++;
+    }
+
+
+    unsigned char byte_bundle_hash[48];
+    chars_to_bytes(txs[0].bundle, byte_bundle_hash, 81);
+    memcpy(header_bytes, byte_bundle_hash, 48);
+
+    return header_bytes + 48;
+}
+
+char * get_tx_number_by_compress_header(char * transaction_header, uint32_t * num_txs){
+    int32_copy((char *) num_txs, (uint32_t) *transaction_header);
+
+    return transaction_header + sizeof(uint32_t);
+}
+
+void parse_compressed_header(
+        char * transaction_header,
+        uint32_t num_txs,
+        uint8_t * has_transaction_message,
+        char char_bundle_hash[81]
+){
+    printf("\nTX COUNT: %i\n", num_txs);
+
+    for(int i = 0; i < num_txs; i++){
+        int8_copy(has_transaction_message + i, *transaction_header);
+        printf("\nHAS TX MESSAGE: %i\n", has_transaction_message[i]);
+        transaction_header = transaction_header + sizeof(uint8_t);
+    }
+
+
+    unsigned char bytes_bundle_hash[48];
+    memcpy(bytes_bundle_hash, transaction_header, 48);
+
+    bytes_to_chars(bytes_bundle_hash, char_bundle_hash, 48);
+    printf("\nBUNDLEEEE: %.*s\n\n", 81, char_bundle_hash);
+
+}
+
+static void get_compressed_transaction_bytes(const TX_OBJECT *txs, char *transaction_header, char transaction_bytes[][1584], uint32_t num_txs) {
+    char transactions_chars[num_txs][2673];
+
+    char * start_ptr = transaction_header + 4;
+    uint8_t has_transaction_message[num_txs];
+    uint8_t has_tag[num_txs];
+
+    int i = 0;
+    for(int index = num_txs; index > 0; index--){
+        has_transaction_message[index -1] = (uint8_t)*(start_ptr + i);
+        i++;
+    }
+
+    i = 0;
+    for(int index = num_txs; index > 0; index--){
+        has_tag[index -1] = (uint8_t)*(start_ptr + i);
+        i++;
+    }
+
+    i = 0;
+    for(int index = num_txs; index > 0; index--){
+
+        unsigned int char_count = 0;
+        TX_OBJECT tx = txs[i];
+
+        char *c = transactions_chars[index -1];
+        c = char_copy(c, tx.address, 81);
+        c = int64_to_chars(tx.value, c, 27);
+        c = int64_to_chars(tx.currentIndex, c, 9);
+        c = int64_to_chars(tx.lastIndex, c, 9);
+        c = char_copy(c, tx.tag, 27);
+        c = char_copy(c, tx.obsoleteTag, 27);
+
+        printf("\nI: %i\n", i);
+        printf("\nADDRESS:\n%s\n", tx.address);
+        printf("\nVALUE:\n%i\n", tx.value);
+        printf("\nCURRENT INDEX:\n%i\n", tx.currentIndex);
+        printf("\nLAST INDEX:\n%i\n", tx.lastIndex);
+        printf("\nTAG:\n%s\n", tx.tag);
+
+        char_count = char_count + 153;
+
+        for(int i = 0; i < 9; i++){
+            c = char_copy(c, "9", 1);
+            char_count = char_count + 1;
+        }
+
+        printf("\nHAS MESSAGE: %i \n", has_transaction_message[i]);
+        printf("\nSIGNATURE:\n%s\n", tx.signatureMessageFragment);
+
+
+        if(has_transaction_message[i]){
+            c = char_copy(c, tx.signatureMessageFragment, 2187);
+            char_count = char_count + 2187;
+        }
+
+        memcpy(transactions_chars[index -1] + char_count, "\0", 1);
+        printf("\nCHAR CNT: %i\n", char_count);
+        printf("\nTX STRING:\n%s\n", transactions_chars[index -1]);
+
+        chars_to_bytes(transactions_chars[index -1], (unsigned char *) transaction_bytes[i], char_count);
+        printf("TX BYTES: %.*s\n", 1584, transaction_bytes[i]);
+
+        i++;
+    }
 }
 
 static void get_transaction_chars(const TX_OBJECT tx, char *transaction_chars) {
@@ -199,27 +380,10 @@ void sign_inputs(
     }
 }
 
-
-void create_transfer_bytes(
+TX_OBJECT *get_transaction_objs(
         char *seed, uint8_t security, TX_OUTPUT *outputs,
         int num_outputs, TX_INPUT *inputs, int num_inputs,
-        char transaction_bytes[][1584]
-) {
-    const unsigned int num_txs = (unsigned int) (num_outputs + num_inputs * security);
-    char transaction_chars[num_txs][2673];
-
-    create_transfer_chars(seed, security, outputs, num_outputs, inputs, num_inputs, transaction_chars);
-
-    for (int i = 0; i < num_txs; i++) {
-        chars_to_bytes(transaction_chars[i], (unsigned char *) transaction_bytes[i], 2673);
-    }
-}
-
-
-void create_transfer_chars(
-        char *seed, uint8_t security, TX_OUTPUT *outputs,
-        int num_outputs, TX_INPUT *inputs, int num_inputs,
-        char transaction_chars[][2673]
+        TX_OBJECT *txs
 ) {
     // TODO use a proper timestamp
     const uint32_t timestamp = 0;
@@ -228,9 +392,6 @@ void create_transfer_chars(
 
     unsigned char seed_bytes[48];
     chars_to_bytes(seed, seed_bytes, 81);
-
-    // first create the transaction objects
-    TX_OBJECT txs[num_txs];
 
     int idx = generate_output_objs(outputs, num_outputs, txs, timestamp, last_tx_index);
     generate_input_objs(inputs, num_inputs, txs, timestamp, last_tx_index, security, seed_bytes, idx);
@@ -252,11 +413,137 @@ void create_transfer_chars(
 
     sign_inputs(seed_bytes, security, txs, inputs, normalized_bundle_hash, num_inputs, num_outputs);
 
+    return txs;
+}
+
+char * create_transfer_compress_bytes(
+        char *seed, uint8_t security, TX_OUTPUT *outputs,
+        int num_outputs, TX_INPUT *inputs, int num_inputs,
+        char transaction_bytes[][1584]
+) {
+    const unsigned int num_txs = (unsigned int) (num_outputs + num_inputs * security);
+
+    unsigned char seed_bytes[48];
+    chars_to_bytes(seed, seed_bytes, 81);
+
+    // first create the transaction objects
+    TX_OBJECT txs[num_txs];
+
+    get_transaction_objs(seed, security, outputs, num_outputs, inputs, num_inputs, txs);
+
+    char * transaction_header = (char *) malloc((4 + (num_txs * 8) + 48) * sizeof(char));
+    get_compress_header_bytes(txs, transaction_header, num_txs);
+
+    printf("\nNUMER TXS:\n%i\n", num_txs);
+    get_compressed_transaction_bytes(txs, transaction_header, transaction_bytes, num_txs);
+
+    return transaction_header;
+}
+
+
+void create_transfer_chars(
+        char *seed, uint8_t security, TX_OUTPUT *outputs,
+        int num_outputs, TX_INPUT *inputs, int num_inputs,
+        char transaction_chars[][2673]
+) {
+    // TODO use a proper timestamp
+    const uint32_t timestamp = 0;
+    const unsigned int num_txs = (unsigned int) (num_outputs + num_inputs * security);
+    const unsigned int last_tx_index = num_txs - 1;
+
+    unsigned char seed_bytes[48];
+    chars_to_bytes(seed, seed_bytes, 81);
+
+    // first create the transaction objects
+    TX_OBJECT txs[num_txs];
+
+    get_transaction_objs(seed, security, outputs, num_outputs, inputs, num_inputs, txs);
+
     // convert everything into trytes
     for (unsigned int i = 0; i < num_txs; i++) {
         get_transaction_chars(txs[i], transaction_chars[last_tx_index - i]);
     }
 }
 
+void parse_compressed_tx(char transaction_bytes[1584], TX_OBJECT * tx){
+
+}
+
+void parse_compressed_bytes(char transaction_header[], char transaction_bytes[][1584], char transaction_chars[][2673]){
+    uint32_t num_txs;
+    transaction_header = get_tx_number_by_compress_header(transaction_header, &num_txs);
+    uint8_t has_transaction_message[num_txs];
+    char bundle_hash[81];
+    parse_compressed_header(transaction_header, num_txs, has_transaction_message, bundle_hash);
+
+    char compress_transaction_chars[num_txs][2673];
+
+    for(int i = 0; i < num_txs; i++){
+        uint32_t char_count = 162;
+
+        if(has_transaction_message[i]){
+            char_count = char_count + 2187;
+        }
+
+
+        bytes_to_chars(transaction_bytes[i], compress_transaction_chars[i], char_count);
+
+        char * compressed = compress_transaction_chars[i];
+
+        char address[81];
+        char value[27];
+        char currentIndex[9];
+        char lastIndex[9];
+        char tag[27];
+
+        compressed = char_copy(address, compressed, 81);
+        compressed = char_copy(value, compressed, 27);
+        compressed = char_copy(currentIndex, compressed, 9);
+        compressed = char_copy(lastIndex, compressed , 9);
+        compressed = char_copy(tag, compressed, 27);
+
+        char message[2187];
+        if(has_transaction_message[i]){
+            compressed = char_copy(message, compressed, 2187);
+        }
+
+        char trunkTransaction[81];
+        char branchTransaction[81];
+        char nonce[27];
+        char * c = transaction_chars[i];
+
+        c = char_copy(c, message, 2187);
+        c = char_copy(c, address, 81);
+        c = char_copy(c, value, 27);
+        //c = char_copy(c, obsolote_tag, 27);
+        c = int64_to_chars(0, c, 9);
+        c = char_copy(c, currentIndex, 9);
+        c = char_copy(c, lastIndex, 9);
+        c = char_copy(c, bundle_hash, 81);
+        c = char_copy(c, trunkTransaction, 81);
+        c = char_copy(c, branchTransaction, 81);
+        c = char_copy(c, tag, 27);
+        c = int64_to_chars(0, c , 9);
+        c = int64_to_chars(0, c, 9);
+        c = int64_to_chars(0, c, 9);
+        c = char_copy(c, nonce, 27);
+
+    }
+}
+
+void create_transfer_bytes(
+        char *seed, uint8_t security, TX_OUTPUT *outputs,
+        int num_outputs, TX_INPUT *inputs, int num_inputs,
+        char transaction_bytes[][1584]
+) {
+    const unsigned int num_txs = (unsigned int) (num_outputs + num_inputs * security);
+    char transaction_chars[num_txs][2673];
+
+    create_transfer_chars(seed, security, outputs, num_outputs, inputs, num_inputs, transaction_chars);
+
+    for (int i = 0; i < num_txs; i++) {
+        chars_to_bytes(transaction_chars[i], (unsigned char *) transaction_bytes[i], 2673);
+    }
+}
 
 
